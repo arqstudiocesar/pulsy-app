@@ -169,11 +169,14 @@ const App: React.FC = () => {
   // ─── Gerar plano ──────────────────────────────────────────────────────────
   const syncPlanWithAI = useCallback(async (profile: UserProfile, force = false) => {
     if (isSyncing) return;
-    if (!hasGroqKey()) {
-      setSyncError('Configure sua GROQ_API_KEY clicando em ⚙ no cabeçalho.');
-      setShowApiModal(true);
-      return;
-    }
+    // Verificação opcional: se NÃO tiver chave em env nem localStorage, mostra modal como fallback
+  const currentKey = getKey();  // chama a função que você já atualizou
+  if (!currentKey) {
+    setSyncError('Nenhuma chave GROQ encontrada. Configure clicando em ⚙ no cabeçalho ou adicione no Vercel.');
+    setShowApiModal(true);
+    return;
+  }
+
     setIsSyncing(true);
     setSyncError(null);
 
