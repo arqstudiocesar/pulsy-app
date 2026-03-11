@@ -1,0 +1,8 @@
+{
+  "name": "Pulsy - Bio-Energy Intelligence",
+  "description": "Sistema de inteligência bioenergética e treinamento adaptativo movido por IA.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
