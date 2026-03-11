@@ -31,19 +31,24 @@ const MODELS = [
 // --- API Key ------------------------------------------------------------------
 function getKey(): string {
   try {
+    // Prioridade 1: Variável de ambiente do Vite (Vercel injeta isso)
+    if (import.meta.env.VITE_GROQ_API_KEY) {
+      return import.meta.env.VITE_GROQ_API_KEY;
+    }
+
+    // Prioridade 2: Variável global (opcional, raramente usada)
     if (typeof window !== 'undefined') {
       const w = (window as any).GROQ_API_KEY;
       if (w) return w;
-      const ls = localStorage.getItem('GROQ_API_KEY');
-      if (ls) return ls;
     }
+
+    // Prioridade 3: localStorage (fallback para chave pessoal do usuário)
+    const ls = localStorage.getItem('GROQ_API_KEY');
+    if (ls) return ls;
   } catch { /* ignore */ }
-  try { return (import.meta as any).env?.VITE_GROQ_API_KEY || ''; } catch { return ''; }
+
+  return '';  // Sem chave → modal aparece
 }
-export function saveGroqKey(k: string) {
-  try { localStorage.setItem('GROQ_API_KEY', k.trim()); } catch { /* ignore */ }
-}
-export function hasGroqKey(): boolean { return !!getKey(); }
 
 // --- Cache --------------------------------------------------------------------
 function hashProfile(p: UserProfile): string {
