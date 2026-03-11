@@ -734,3 +734,21 @@ export function calcMaxKcalRecommended(profile: UserProfile | null, _plan: Weekl
 
   return Math.round(tdee);
 }
+
+// Adicionar aqui no final do arquivo services/aiService.ts
+
+export function saveGroqKey(k: string) {
+  try {
+    localStorage.setItem('GROQ_API_KEY', k.trim());
+    console.log('[saveGroqKey] Chave salva no localStorage');
+  } catch (err) {
+    console.warn('[saveGroqKey] Erro ao salvar no localStorage:', err);
+  }
+}
+
+export function hasGroqKey(): boolean {
+  const key = getKey();
+  const hasKey = !!key;
+  console.log('[hasGroqKey] Resultado:', hasKey, '(chave existe?)');
+  return hasKey;
+}
