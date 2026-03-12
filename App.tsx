@@ -10,7 +10,7 @@ import { ProgressView }   from './components/ProgressView';
 import { LibraryView }    from './components/LibraryView';
 import { NAVIGATION_ITEMS, DEFAULT_PLAN } from './constants';
 import { AppState, UserProfile, WeeklyPlan, WorkoutSession } from './types';
-import { generatePlan, saveGroqKey, hasGroqKey, clearPlanCache } from './services/aiService';
+import { generatePlan, saveGroqKey, hasGroqKey, clearPlanCache, getKey } from './services/aiService';
 import {
   Bell, Search, Loader2, RefreshCw, Users, Plus, X, KeyRound, Check
 } from 'lucide-react';

@@ -29,7 +29,7 @@ const MODELS = [
 ];
 
 // --- API Key ------------------------------------------------------------------
-function getKey(): string {
+export function getKey(): string {
   let key = '';
 
   // 1. Variável de ambiente Vite (Vercel / build time)
@@ -737,6 +737,13 @@ export function calcMaxKcalRecommended(profile: UserProfile | null, _plan: Weekl
 
 // Adicionar aqui no final do arquivo services/aiService.ts
 
+export function hasGroqKey(): boolean {
+  const key = getKey();
+  const hasKey = !!key;
+  console.log('[hasGroqKey] Resultado:', hasKey, '(chave existe?)');
+  return hasKey;
+}
+
 export function saveGroqKey(k: string) {
   try {
     localStorage.setItem('GROQ_API_KEY', k.trim());
@@ -744,11 +751,4 @@ export function saveGroqKey(k: string) {
   } catch (err) {
     console.warn('[saveGroqKey] Erro ao salvar no localStorage:', err);
   }
-}
-
-export function hasGroqKey(): boolean {
-  const key = getKey();
-  const hasKey = !!key;
-  console.log('[hasGroqKey] Resultado:', hasKey, '(chave existe?)');
-  return hasKey;
 }
