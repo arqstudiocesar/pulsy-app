@@ -70,12 +70,14 @@ export interface UserProfile {
   };
   availability: {
     daysPerWeek: number;
-    selectedDays: number[];        // dias JS: 0=Dom, 1=Seg … 6=Sáb
-    frequencyPerDay: number;       // sessões no mesmo dia
-    timePerSession: number;        // duração máxima (min) por sessão
-    minExercisesPerSession: number;// mínimo de exercícios por sessão
+    selectedDays: number[];          // dias JS: 0=Dom, 1=Seg … 6=Sáb
+    frequencyPerDay: number;         // sessões no mesmo dia
+    timePerSession: number;          // duração máxima (min) por sessão
+    minExercisesPerSession: number;  // mínimo de exercícios por sessão
     locations: string[];
     modalities?: string[];
+    // NOVO: rotina muscular por dia { jsDay: ['Peitoral', 'Tríceps', ...] }
+    muscleRoutine?: Record<number, string[]>;
     // compatibilidade com campo legado
     maxSessionTime?: number;
     minExercisesPerDay?: number;
@@ -111,7 +113,7 @@ export interface Exercise {
   massGainFactor?: number;
   gramsLostFactor?: number;
   isCompleted?: boolean;
-  estimatedMinutes?: number; // tempo estimado de execução
+  estimatedMinutes?: number;
 }
 
 export interface WorkoutSession {
@@ -120,7 +122,7 @@ export interface WorkoutSession {
   dayName?: string;
   dayIndex?: number;
   sessionIndex?: number;
-  duration: number;              // segundos
+  duration: number;
   completedExercises: number;
   caloriesBurned?: number;
   totalFatLostGrams?: number;
@@ -151,11 +153,10 @@ export interface Meal {
 export interface DayPlan {
   day: string;
   workout: Exercise[];
-  sessions?: Exercise[][];       // múltiplas sessões por dia
+  sessions?: Exercise[][];
   nutrition: Meal[];
 }
 
-// alias para compatibilidade
 export type DailyPlan = DayPlan;
 
 export interface WeeklyPlan {

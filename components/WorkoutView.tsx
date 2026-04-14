@@ -44,7 +44,6 @@ export const WorkoutView: React.FC<Props> = ({
 
   const timePerSession = profile?.availability?.timePerSession || profile?.availability?.maxSessionTime || 60;
 
-  // ─── Dados do dia ──────────────────────────────────────────────────────
   const dayData = useMemo<DayPlan | null>(() => {
     return currentPlan?.weeklyPlan?.[selectedDayIndex] || null;
   }, [currentPlan, selectedDayIndex]);
@@ -60,14 +59,12 @@ export const WorkoutView: React.FC<Props> = ({
     return [];
   }, [dayData]);
 
-  // ─── Timer de execução ─────────────────────────────────────────────────
   useEffect(() => {
     if (!playerState || playerState.isFinished) return;
     const interval = setInterval(() => setTimer(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, [playerState?.isFinished]);
 
-  // ─── Timer de descanso ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isResting) return;
     setRestTimer(40);
@@ -80,7 +77,6 @@ export const WorkoutView: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [isResting]);
 
-  // ─── Após descanso: avançar fila ──────────────────────────────────────
   const advanceQueue = useCallback(() => {
     if (!playerState) return;
     const nextIndex = playerState.currentIndex + 1;
@@ -97,7 +93,6 @@ export const WorkoutView: React.FC<Props> = ({
     }
   }, [isResting]);
 
-  // ─── Iniciar player ────────────────────────────────────────────────────
   const startPlayer = (sessionIdx: number = 0) => {
     const session = sessions[sessionIdx] || [];
     const valid = session.filter(ex => ex && ex.name);
@@ -115,13 +110,11 @@ export const WorkoutView: React.FC<Props> = ({
     setIsResting(false);
   };
 
-  // ─── Concluir exercício → descanso ─────────────────────────────────────
   const completeCurrentExercise = () => {
     if (!playerState) return;
     setIsResting(true);
   };
 
-  // ─── Pular: vai para o final da fila ──────────────────────────────────
   const skipExercise = () => {
     if (!playerState) return;
     const current = playerState.queue[playerState.currentIndex];
@@ -137,7 +130,6 @@ export const WorkoutView: React.FC<Props> = ({
     });
   };
 
-  // ─── Finalizar sessão ──────────────────────────────────────────────────
   const finishSession = () => {
     if (!playerState) return;
     const completedCount = playerState.currentIndex;
@@ -157,7 +149,6 @@ export const WorkoutView: React.FC<Props> = ({
     setIsResting(false);
   };
 
-  // ─── Detalhes do exercício ────────────────────────────────────────────
   const loadExerciseDetail = async (ex: Exercise) => {
     setLoadingDetail(true);
     setShowDetail(ex);
@@ -166,7 +157,6 @@ export const WorkoutView: React.FC<Props> = ({
     setLoadingDetail(false);
   };
 
-  // ─── Trocar exercício ─────────────────────────────────────────────────
   const handleSwapExercise = async (dayIdx: number, exId: string) => {
     if (!currentPlan || !profile) return;
     setLoadingSwap(exId);
@@ -181,7 +171,6 @@ export const WorkoutView: React.FC<Props> = ({
     setLoadingSwap(null);
   };
 
-  // ─── Remover exercício ────────────────────────────────────────────────
   const removeExercise = async (dayIdx: number, exId: string) => {
     if (!currentPlan || !profile) return;
     const newPlan = JSON.parse(JSON.stringify(currentPlan)) as WeeklyPlan;
@@ -190,7 +179,6 @@ export const WorkoutView: React.FC<Props> = ({
     onUpdatePlan(updated);
   };
 
-  // TÓPICO 8: Exportar PDF do plano de treino
   const exportPDF = () => {
     if (!currentPlan) return;
     const lines: string[] = [];
@@ -238,10 +226,7 @@ export const WorkoutView: React.FC<Props> = ({
   };
 
   const sessionTimeStr = (exList: Exercise[]) => `~${Math.round(calcSessionTime(exList))} min`;
-
-  const isSessionDone = (dayIdx: number, sessionIdx: number) =>
-    !!completedSessions[`${dayIdx}-${sessionIdx}`];
-
+  const isSessionDone = (dayIdx: number, sessionIdx: number) => !!completedSessions[`${dayIdx}-${sessionIdx}`];
   const timeWarning = (exList: Exercise[]) => calcSessionTime(exList) > timePerSession + 5;
 
   return (
@@ -251,8 +236,7 @@ export const WorkoutView: React.FC<Props> = ({
         <h2 className="text-3xl font-black italic uppercase tracking-tighter text-emerald-400">Treinamento</h2>
         <div className="flex items-center gap-2">
           <button onClick={exportPDF} title="Exportar PDF"
-            className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-full hover:bg-blue-500/20 transition-all"
-          >
+            className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-full hover:bg-blue-500/20 transition-all">
             <FileDown size={18} className="text-blue-400" />
           </button>
           <button onClick={savePlan}
@@ -263,7 +247,6 @@ export const WorkoutView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Info de tempo */}
       {profile && (
         <div className="flex items-center gap-3 bg-emerald-400/5 border border-emerald-400/20 rounded-2xl px-5 py-3">
           <Clock size={16} className="text-emerald-400" />
@@ -275,7 +258,6 @@ export const WorkoutView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Toggle */}
       <div className="flex gap-3">
         {(['daily', 'weekly'] as const).map(v => (
           <button key={v} onClick={() => setView(v)}
@@ -287,7 +269,6 @@ export const WorkoutView: React.FC<Props> = ({
         ))}
       </div>
 
-      {/* Seletor de dia */}
       <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
         {DAYS.map((day, idx) => {
           const hasSessions = (currentPlan?.weeklyPlan?.[idx]?.workout?.length || 0) > 0;
@@ -310,7 +291,6 @@ export const WorkoutView: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Visualização diária */}
       {view === 'daily' && (
         <div className="space-y-6">
           {sessions.length === 0 ? (
@@ -323,9 +303,7 @@ export const WorkoutView: React.FC<Props> = ({
               <div key={sIdx} className="bg-neutral-900/40 p-6 rounded-3xl border border-white/5 space-y-5">
                 {sessions.length > 1 && (
                   <div className="flex items-center justify-between">
-                    <h3 className="font-black uppercase text-sm text-emerald-400 tracking-widest">
-                      Sessão {sIdx + 1}
-                    </h3>
+                    <h3 className="font-black uppercase text-sm text-emerald-400 tracking-widest">Sessão {sIdx + 1}</h3>
                     {isSessionDone(selectedDayIndex, sIdx) && (
                       <span className="flex items-center gap-1 text-xs text-emerald-400 font-bold">
                         <Check size={14} /> Concluída
@@ -333,7 +311,6 @@ export const WorkoutView: React.FC<Props> = ({
                     )}
                   </div>
                 )}
-
                 <div className="space-y-3">
                   {session.map((ex, idx) => (
                     <div key={`s${sIdx}-e${idx}-${ex.id}`} className="bg-black/30 p-5 rounded-2xl border border-white/5 flex items-center gap-4 group">
@@ -342,9 +319,7 @@ export const WorkoutView: React.FC<Props> = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-black text-base leading-tight truncate">{ex.name}</p>
-                        <p className="text-gray-500 text-xs mt-0.5">
-                          {ex.sets}× {ex.reps} · descanso {ex.rest}
-                        </p>
+                        <p className="text-gray-500 text-xs mt-0.5">{ex.sets}× {ex.reps} · descanso {ex.rest}</p>
                         {ex.muscleGroup && (
                           <span className="text-[10px] text-emerald-400/60 font-bold uppercase">{ex.muscleGroup}</span>
                         )}
@@ -367,8 +342,6 @@ export const WorkoutView: React.FC<Props> = ({
                     </div>
                   ))}
                 </div>
-
-                {/* Tempo estimado */}
                 <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
                   <Clock size={12} />
                   Tempo estimado: {sessionTimeStr(session)}
@@ -376,8 +349,6 @@ export const WorkoutView: React.FC<Props> = ({
                     <span className="text-yellow-400 ml-2">⚠ Excede o limite do perfil (+5 min tolerância)</span>
                   )}
                 </div>
-
-                {/* Botão iniciar */}
                 {!isSessionDone(selectedDayIndex, sIdx) ? (
                   <button onClick={() => startPlayer(sIdx)}
                     className="w-full py-4 bg-emerald-400 text-black rounded-full font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300 transition-all active:scale-95">
@@ -394,7 +365,6 @@ export const WorkoutView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Visualização semanal */}
       {view === 'weekly' && (
         <div className="space-y-4">
           {currentPlan?.weeklyPlan?.map((day, idx) => (
@@ -434,97 +404,132 @@ export const WorkoutView: React.FC<Props> = ({
       )}
 
       {/* ─── PLAYER ──────────────────────────────────────────────────────── */}
+      {/* CORRECAO: fundo preto ~90% opacidade para contraste total.
+          Cada bloco de info tem card próprio com fundo distinto para separar visualmente. */}
       {playerState && (
-        <div className="fixed inset-0 bg-black/97 z-50 flex flex-col overflow-y-auto">
-          <div className="flex-1 flex flex-col p-6 gap-6 max-w-lg mx-auto w-full">
-            {/* Timer */}
-            <div className="flex items-center justify-between pt-4">
-              <div className="text-5xl font-black tabular-nums">
-                {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
+        <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{ backgroundColor: 'rgba(0,0,0,0.93)' }}>
+          <div className="flex flex-col p-5 gap-5 max-w-lg mx-auto w-full py-8">
+
+            {/* Barra de topo: timer + contador */}
+            <div className="flex items-center justify-between bg-neutral-900 border border-white/10 rounded-2xl px-6 py-4">
+              <div>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tempo de Treino</p>
+                <div className="text-4xl font-black tabular-nums text-white">
+                  {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
+                </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-600 font-bold uppercase">Exercício</p>
-                <p className="text-lg font-black text-emerald-400">
-                  {playerState.isFinished ? '✓' : `${playerState.currentIndex + 1}/${playerState.queue.length}`}
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Exercício</p>
+                <p className="text-2xl font-black text-emerald-400">
+                  {playerState.isFinished ? '✓ Fim' : `${playerState.currentIndex + 1} / ${playerState.queue.length}`}
                 </p>
               </div>
             </div>
 
             {/* Descanso */}
             {isResting && (
-              <div className="flex-1 flex flex-col items-center justify-center gap-6 bg-yellow-400/5 border border-yellow-400/20 rounded-3xl p-8">
+              <div className="flex flex-col items-center justify-center gap-5 bg-yellow-400/10 border-2 border-yellow-400/40 rounded-3xl p-8">
                 <p className="text-2xl font-black text-yellow-400 uppercase tracking-widest">⏱ Descanso</p>
-                <div className="text-7xl font-black tabular-nums text-yellow-400">{restTimer}s</div>
+                <div className="text-8xl font-black tabular-nums text-yellow-400">{restTimer}s</div>
+                <p className="text-xs text-yellow-400/60 font-bold uppercase tracking-widest">Próximo exercício em breve…</p>
                 <button onClick={() => setIsResting(false)}
-                  className="px-8 py-4 bg-emerald-400 text-black rounded-full font-black uppercase tracking-widest hover:bg-emerald-300 transition-all">
+                  className="px-8 py-4 bg-emerald-400 text-black rounded-full font-black uppercase tracking-widest hover:bg-emerald-300 transition-all active:scale-95">
                   Pular Descanso
                 </button>
               </div>
             )}
 
-            {/* Exercício atual */}
+            {/* Exercício atual — CORRECAO: card com fundo sólido para destaque total */}
             {!isResting && !playerState.isFinished && (
-              <div className="flex-1 space-y-6">
-                <div className="bg-neutral-900/60 p-8 rounded-3xl border border-white/5 space-y-4">
-                  <p className="text-3xl font-black uppercase leading-tight">
-                    {playerState.queue[playerState.currentIndex]?.name}
-                  </p>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="space-y-4">
+
+                {/* Card principal do exercício */}
+                <div className="bg-neutral-900 border border-emerald-400/30 rounded-3xl p-6 space-y-5">
+                  {/* Nome em destaque */}
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest mb-2">Exercício Atual</p>
+                    <p className="text-3xl font-black uppercase leading-tight text-white">
+                      {playerState.queue[playerState.currentIndex]?.name}
+                    </p>
+                    {playerState.queue[playerState.currentIndex]?.muscleGroup && (
+                      <span className="inline-block mt-2 text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full">
+                        {playerState.queue[playerState.currentIndex]?.muscleGroup}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Métricas em destaque */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
                     {[
                       { label: 'Séries',   val: playerState.queue[playerState.currentIndex]?.sets || 3 },
                       { label: 'Reps',     val: playerState.queue[playerState.currentIndex]?.reps || '10-12' },
                       { label: 'Descanso', val: playerState.queue[playerState.currentIndex]?.rest || '40s' }
                     ].map(item => (
-                      <div key={item.label} className="bg-black/40 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-gray-600 uppercase mb-1">{item.label}</p>
+                      <div key={item.label} className="bg-black/60 border border-white/10 p-4 rounded-2xl">
+                        <p className="text-[10px] font-black text-gray-500 uppercase mb-2">{item.label}</p>
                         <p className="text-2xl font-black text-emerald-400">{item.val}</p>
                       </div>
                     ))}
                   </div>
+
+                  {/* Instruções — fundo diferenciado */}
                   {playerState.queue[playerState.currentIndex]?.instructions && (
-                    <p className="text-sm text-gray-400 leading-relaxed italic">
-                      {playerState.queue[playerState.currentIndex]?.instructions}
-                    </p>
+                    <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Execução</p>
+                      <p className="text-sm text-gray-300 leading-relaxed italic">
+                        {playerState.queue[playerState.currentIndex]?.instructions}
+                      </p>
+                    </div>
                   )}
                 </div>
 
+                {/* Exercícios pulados */}
                 {playerState.skippedIds.size > 0 && (
                   <div className="bg-yellow-400/5 border border-yellow-400/20 p-4 rounded-2xl">
                     <p className="text-xs font-black text-yellow-400 uppercase mb-2">
-                      Exercícios para retomar: {playerState.skippedIds.size}
+                      Para retomar: {playerState.skippedIds.size} exercício(s)
                     </p>
                     {playerState.queue.filter(ex => playerState.skippedIds.has(ex.id)).map(ex => (
-                      <p key={ex.id} className="text-xs text-gray-500">{ex.name}</p>
+                      <p key={ex.id} className="text-xs text-gray-400">{ex.name}</p>
                     ))}
                   </div>
                 )}
 
+                {/* BOTÃO CONCLUIR — Verde, grande, destaque total */}
                 <button onClick={completeCurrentExercise}
-                  className="w-full py-5 bg-emerald-400 text-black rounded-full font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300 transition-all active:scale-95 text-sm">
-                  <Check size={18} /> Concluir Exercício
+                  className="w-full py-5 bg-emerald-400 text-black rounded-full font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:bg-emerald-300 transition-all active:scale-95 text-base">
+                  <Check size={20} /> Concluir Exercício
                 </button>
+
+                {/* BOTÃO PULAR — Amarelo, separado visualmente */}
                 <button onClick={skipExercise}
-                  className="w-full py-4 bg-yellow-400/10 text-yellow-400 rounded-full font-black uppercase tracking-widest hover:bg-yellow-400/20 transition-all text-sm">
+                  className="w-full py-4 bg-yellow-400/15 border border-yellow-400/40 text-yellow-400 rounded-full font-black uppercase tracking-widest hover:bg-yellow-400/25 transition-all text-sm">
                   Pular → Volta no Final
+                </button>
+
+                {/* BOTÃO FINALIZAR — Vermelho, separado visualmente */}
+                <button onClick={finishSession}
+                  className="w-full py-4 bg-red-500/15 border border-red-500/30 text-red-400 rounded-full font-black uppercase tracking-widest hover:bg-red-500/25 transition-all text-sm">
+                  Finalizar Sessão Agora
                 </button>
               </div>
             )}
 
             {/* Sessão concluída */}
             {playerState.isFinished && (
-              <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
-                <div className="w-20 h-20 bg-emerald-400 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.4)]">
-                  <Check size={40} className="text-black" />
+              <div className="flex flex-col items-center justify-center gap-6 text-center">
+                <div className="w-24 h-24 bg-emerald-400 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.5)]">
+                  <Check size={44} className="text-black" />
                 </div>
                 <p className="text-3xl font-black text-emerald-400 uppercase tracking-tight">Sessão Completa!</p>
                 <div className="grid grid-cols-2 gap-4 w-full">
-                  <div className="bg-neutral-900/60 p-5 rounded-2xl text-center">
-                    <p className="text-[10px] text-gray-600 font-black uppercase">Duração</p>
-                    <p className="text-2xl font-black">{Math.floor(timer / 60)}min {timer % 60}s</p>
+                  <div className="bg-neutral-900 border border-white/10 p-5 rounded-2xl text-center">
+                    <p className="text-[10px] text-gray-500 font-black uppercase mb-1">Duração</p>
+                    <p className="text-2xl font-black text-white">{Math.floor(timer / 60)}min {timer % 60}s</p>
                   </div>
-                  <div className="bg-neutral-900/60 p-5 rounded-2xl text-center">
-                    <p className="text-[10px] text-gray-600 font-black uppercase">Exercícios</p>
-                    <p className="text-2xl font-black">{playerState.currentIndex}</p>
+                  <div className="bg-neutral-900 border border-white/10 p-5 rounded-2xl text-center">
+                    <p className="text-[10px] text-gray-500 font-black uppercase mb-1">Exercícios</p>
+                    <p className="text-2xl font-black text-white">{playerState.currentIndex}</p>
                   </div>
                 </div>
                 <button onClick={finishSession}
@@ -532,13 +537,6 @@ export const WorkoutView: React.FC<Props> = ({
                   Registrar & Fechar
                 </button>
               </div>
-            )}
-
-            {!playerState.isFinished && (
-              <button onClick={finishSession}
-                className="w-full py-4 bg-red-400/10 text-red-400 rounded-full font-black uppercase tracking-widest hover:bg-red-400/20 transition-all text-sm">
-                Finalizar Sessão Agora
-              </button>
             )}
           </div>
         </div>

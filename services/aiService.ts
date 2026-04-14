@@ -272,10 +272,10 @@ async function genWorkoutSession(
   day: string,
   profile: UserProfile,
   sessionIdx: number,
-  totalSessions: number
+  totalSessions: number,
+  dayJsIndex?: number
 ): Promise<Exercise[]> {
   const av  = profile.availability;
-  // CORRECAO TOPICO 1: usa timePerSession COMPLETO para CADA sessao individualmente
   const tps = av.timePerSession || av.maxSessionTime || 60;
   const min = av.minExercisesPerSession || av.minExercisesPerDay || 4;
   const max = calcMaxExercises(tps, min);
@@ -283,12 +283,20 @@ async function genWorkoutSession(
   const obj = gol?.type || 'Condicionamento';
   const loc = av.locations?.join('/') || 'Academia';
   const nivel = profile.fitnessLevel || 'Iniciante';
+  const peso = profile.weight || 70;
+  const pesoAlvo = profile.targetWeight || peso;
+  const metaNumerica = gol?.numericValue || '';
 
-  // TOPICO 2: inclui preferencias de modalidade no prompt
   const modPrefs = av.modalities?.length ? av.modalities.join(', ') : null;
-  const prefText = modPrefs ? `Priorizar modalidades: ${modPrefs}.` : '';
+  const prefText = modPrefs ? `Modalidades preferidas: ${modPrefs}.` : '';
 
-  // TOPICO 1: instrucao de diversidade muscular entre sessoes
+  // CORRECAO MOTOR: rotina muscular por dia definida pelo usuario
+  let muscleContext = '';
+  if (dayJsIndex !== undefined && av.muscleRoutine && av.muscleRoutine[dayJsIndex]?.length > 0) {
+    const muscles = av.muscleRoutine[dayJsIndex].join(', ');
+    muscleContext = `OBRIGATORIO: Este dia o usuario escolheu treinar: ${muscles}. Use APENAS exercicios para esses grupos musculares.`;
+  }
+
   let sessionContext = '';
   if (totalSessions > 1) {
     const sessionLabels: Record<number, string> = {
@@ -296,19 +304,22 @@ async function genWorkoutSession(
       1: 'segunda sessao do dia (foco em membros inferiores ou core/cardio)',
       2: 'terceira sessao do dia (foco em core, mobilidade ou cardio)'
     };
-    sessionContext = `Esta eh a ${sessionLabels[sessionIdx] || `sessao ${sessionIdx + 1}`} de ${totalSessions} sessoes neste dia. OBRIGATORIO: use grupos musculares DIFERENTES das outras sessoes para garantir diversidade de estimulos.`;
+    sessionContext = `Esta eh a ${sessionLabels[sessionIdx] || `sessao ${sessionIdx + 1}`} de ${totalSessions} sessoes neste dia. OBRIGATORIO: use grupos musculares DIFERENTES das outras sessoes.`;
   }
 
   const sys = `Personal trainer especializado. Responda APENAS com array JSON valido. Sem markdown. Sem texto fora do JSON.`;
 
   const prompt = `Treino para "${day}" - Sessao ${sessionIdx + 1}/${totalSessions}.
-Perfil: ${profile.name}, ${profile.age}a, ${profile.weight}kg, nivel ${nivel}, objetivo ${obj}, local ${loc}.
+Perfil: ${profile.name}, ${profile.age} anos, ${peso}kg, altura ${profile.height || 175}cm, nivel ${nivel}.
+Objetivo: ${obj}${metaNumerica ? ` (meta numerica: ${metaNumerica})` : ''}.
+Peso alvo: ${pesoAlvo}kg. Local: ${loc}.
 ${prefText}
-Regras: entre ${min} e ${max} exercicios, duracao maxima ${tps} minutos POR SESSAO.
+${muscleContext}
 ${sessionContext}
+Regras OBRIGATORIAS: gerar entre ${min} e ${max} exercicios. Duracao maxima ${tps} minutos POR SESSAO. Exercicios devem ser adequados para nivel ${nivel}.
 
-Responda APENAS com este formato (array direto, sem chave extra):
-[{"id":"e1","name":"Agachamento Livre","sets":3,"reps":"10-12","rest":"60s","muscleGroup":"Quadriceps","category":"Forca","difficulty":"${nivel}","instructions":"Pes na largura dos ombros, desca ate 90 graus.","kcalEstimate":65,"source":"Pulsy AI"}]`;
+Responda APENAS com este array JSON:
+[{"id":"e1","name":"Agachamento Livre","sets":3,"reps":"10-12","rest":"60s","muscleGroup":"Quadriceps","category":"Forca","difficulty":"${nivel}","instructions":"Pes na largura dos ombros, desca ate 90 graus, joelhos alinhados.","kcalEstimate":65,"source":"Pulsy AI"}]`;
 
   const raw = await callGroq(prompt, sys, 900);
   let arr: any[];
@@ -347,19 +358,28 @@ async function genMeals(
   const alg = profile.nutrition?.allergies?.join(', ') || 'nenhuma';
   const obj = profile.structuredGoals?.[0]?.type || profile.nutrition?.objective || 'Condicionamento';
   const nivel = profile.fitnessLevel || 'Iniciante';
+  const orcamento = profile.nutrition?.budget || 'Médio ($$)';
+  const metaNumerica = profile.structuredGoals?.[0]?.numericValue || '';
+  const peso = profile.weight || 70;
+  const pesoAlvo = profile.targetWeight || peso;
 
   const mealList = mealSlots.map(m => `"${m.name}" as ${m.time}`).join(', ');
+  // CORRECAO: numero exato de refeicoes que devem ser geradas neste chunk
+  const numMeals = mealSlots.length;
 
-  const sys = `Nutricionista esportivo. Responda APENAS com array JSON valido. Sem markdown. Sem texto fora do JSON.`;
+  const sys = `Nutricionista esportivo especializado. Responda APENAS com array JSON valido. Sem markdown. Sem texto fora do JSON. NUNCA omita refeicoes solicitadas.`;
 
-  const prompt = `Plano alimentar para ${day}, perfil: ${profile.name}, ${profile.weight}kg, ${nivel}, objetivo ${obj}.
-Refeicoes: ${mealList}. Sem: ${alg}.
-REGRA OBRIGATORIA: EXATAMENTE 3 opcoes por refeicao.
+  const prompt = `Plano alimentar para ${day}.
+Perfil: ${profile.name}, ${peso}kg, peso alvo ${pesoAlvo}kg, nivel ${nivel}, objetivo ${obj}${metaNumerica ? ` (meta: ${metaNumerica})` : ''}, orcamento ${orcamento}.
+Restricoes/Alergias: ${alg}.
+OBRIGATORIO: Gere EXATAMENTE ${numMeals} refeicao(oes) — ${mealList}.
+OBRIGATORIO: Cada refeicao deve ter EXATAMENTE 3 opcoes de alimento.
+Os alimentos devem ser adequados ao objetivo ${obj} e ao perfil nutricional do usuario.
 
-Formato (array direto):
+Formato esperado (array JSON com EXATAMENTE ${numMeals} objeto(s)):
 [{"id":"m${idx}","mealName":"${mealSlots[0].name}","time":"${mealSlots[0].time}","selectedOptionIndex":0,"options":[{"id":"m${idx}o1","food":"Ovo mexido com pao integral","portion":"2 ovos + 2 fatias","calories":320,"protein":22,"carbs":30,"fats":12,"source":"Pulsy AI"},{"id":"m${idx}o2","food":"Iogurte grego com granola","portion":"200g + 30g","calories":290,"protein":18,"carbs":35,"fats":8,"source":"Pulsy AI"},{"id":"m${idx}o3","food":"Vitamina de banana com whey","portion":"300ml","calories":310,"protein":25,"carbs":40,"fats":5,"source":"Pulsy AI"}]}]`;
 
-  const raw = await callGroq(prompt, sys, 1200);
+  const raw = await callGroq(prompt, sys, 1400);
   let arr: any[];
   try {
     let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
@@ -378,35 +398,52 @@ Formato (array direto):
     arr = [];
   }
 
+  // CORRECAO: funcao de fallback por slot individual
+  const makeFallbackMeal = (slot: { name: string; time: string }, si: number): Meal => ({
+    id: `${day}-m${idx + si}`,
+    mealName: slot.name,
+    time: slot.time,
+    selectedOptionIndex: 0,
+    options: [
+      { id: `${day}-m${idx + si}-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 colheres', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
+      { id: `${day}-m${idx + si}-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
+      { id: `${day}-m${idx + si}-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
+    ]
+  });
+
   if (!Array.isArray(arr) || arr.length === 0) {
-    return mealSlots.map((slot, si) => ({
-      id: `${day}-m${idx + si}`,
-      mealName: slot.name,
-      time: slot.time,
-      selectedOptionIndex: 0,
-      options: [
-        { id: `${day}-m${idx + si}-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 colheres', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
-        { id: `${day}-m${idx + si}-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
-        { id: `${day}-m${idx + si}-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
-      ]
-    }));
+    // CORRECAO: retorna fallback para TODOS os slots solicitados
+    return mealSlots.map((slot, si) => makeFallbackMeal(slot, si));
   }
 
-  return arr.map((m: any, si: number) => ({
-    ...m,
-    id: m.id || `${day}-m${idx + si}`,
-    mealName: m.mealName || mealSlots[si]?.name || `Refeicao ${idx + si + 1}`,
-    time: m.time || mealSlots[si]?.time || '12:00',
-    selectedOptionIndex: m.selectedOptionIndex ?? 0,
-    options: ((m.options || []) as any[]).map((o: any, oi: number) => ({
-      ...o,
-      id: o.id || `${day}-m${idx + si}-o${oi + 1}`,
-      calories: o.calories || 250,
-      protein:  o.protein  || 15,
-      carbs:    o.carbs    || 25,
-      fats:     o.fats     || 8,
-    }))
-  }));
+  // CORRECAO: garante que o resultado tenha EXATAMENTE o numero de slots solicitados
+  // Se a IA retornou menos refeicoes que o solicitado, completa com fallback
+  const result = mealSlots.map((slot, si) => {
+    const aiMeal = arr[si];
+    if (!aiMeal) {
+      console.warn(`[Pulsy AI] Refeicao ${si + 1} (${slot.name}) nao gerada pela IA, usando fallback`);
+      return makeFallbackMeal(slot, si);
+    }
+    return {
+      ...aiMeal,
+      id: aiMeal.id || `${day}-m${idx + si}`,
+      // CORRECAO: sempre usa o nome/horario do slot planejado (nao deixa a IA renomear)
+      mealName: slot.name,
+      time: slot.time,
+      selectedOptionIndex: aiMeal.selectedOptionIndex ?? 0,
+      options: ((aiMeal.options || []) as any[]).slice(0, 3).map((o: any, oi: number) => ({
+        ...o,
+        id: o.id || `${day}-m${idx + si}-o${oi + 1}`,
+        calories: o.calories || 250,
+        protein:  o.protein  || 15,
+        carbs:    o.carbs    || 25,
+        fats:     o.fats     || 8,
+      }))
+    };
+  });
+
+  console.log(`[Pulsy AI] genMeals ${day}[${idx}]: solicitado=${mealSlots.length} gerado=${result.length}`);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -465,12 +502,13 @@ export async function generatePlan(
     let workout: Exercise[] = [];
 
     if (isTraining) {
+      const dayJsIdx = DAY_JS[dayName];
       for (let sIdx = 0; sIdx < fpd; sIdx++) {
         if (sIdx > 0) await sleep(2500);
         for (let t = 0; t < 3; t++) {
           try {
-            // CORRECAO: cada sessao recebe timePerSession COMPLETO (nao dividido)
-            const sessionExercises = await genWorkoutSession(dayName, profile, sIdx, fpd);
+            // Passa o dayJsIdx para que a IA respeite a rotina muscular definida pelo usuario
+            const sessionExercises = await genWorkoutSession(dayName, profile, sIdx, fpd, dayJsIdx);
             if (sessionExercises.length > 0) {
               sessions.push(sessionExercises);
               workout.push(...sessionExercises);
@@ -487,46 +525,88 @@ export async function generatePlan(
 
     await sleep(2500);
 
-    // Nutricao
+    // Nutricao — CORRECAO: garante que o numero exato de refeicoes seja sempre respeitado
     let nutrition: Meal[] = [];
     for (let g = 0; g < mealSlots.length; g += 2) {
-      const chunk  = mealSlots.slice(g, g + 2);
+      const chunk = mealSlots.slice(g, g + 2);
       if (g > 0) await sleep(2500);
+      let chunkResult: Meal[] = [];
       for (let t = 0; t < 3; t++) {
         try {
           const meals = await genMeals(dayName, profile, chunk, g);
-          nutrition.push(...meals);
-          break;
+          // CORRECAO: validar que retornou o numero correto de refeicoes do chunk
+          if (meals.length === chunk.length) {
+            chunkResult = meals;
+            break;
+          } else if (meals.length > 0) {
+            // Retornou parcialmente - completa com fallback para os slots faltantes
+            chunkResult = chunk.map((slot, si) => meals[si] || {
+              id: `${dayName}-m${g + si}`,
+              mealName: slot.name,
+              time: slot.time,
+              selectedOptionIndex: 0,
+              options: [
+                { id: `${dayName}-m${g + si}-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 col.', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
+                { id: `${dayName}-m${g + si}-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
+                { id: `${dayName}-m${g + si}-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
+              ]
+            });
+            break;
+          }
         } catch (e: any) {
           console.warn(`[Pulsy AI] meals ${dayName}[${g}] tentativa ${t + 1}:`, e.message);
           if (t < 2) await sleep(6000);
         }
       }
+      // Se nenhuma tentativa funcionou, usa fallback completo para o chunk
+      if (chunkResult.length === 0) {
+        chunkResult = chunk.map((slot, si) => ({
+          id: `${dayName}-m${g + si}`,
+          mealName: slot.name,
+          time: slot.time,
+          selectedOptionIndex: 0,
+          options: [
+            { id: `${dayName}-m${g + si}-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 col.', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
+            { id: `${dayName}-m${g + si}-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
+            { id: `${dayName}-m${g + si}-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
+          ]
+        }));
+      }
+      nutrition.push(...chunkResult);
     }
 
-    if (nutrition.length === 0) {
-      nutrition = mealSlots.map((slot, si) => ({
-        id: `${dayName}-m${si}`,
-        mealName: slot.name,
-        time: slot.time,
-        selectedOptionIndex: 0,
-        options: [
-          { id: `${dayName}-m${si}-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 col.', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
-          { id: `${dayName}-m${si}-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
-          { id: `${dayName}-m${si}-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
-        ]
-      }));
+    // CORRECAO FINAL: se por qualquer motivo ainda faltar refeicoes, completa ate mPD
+    if (nutrition.length < mealSlots.length) {
+      console.warn(`[Pulsy AI] ${dayName}: refeicoes geradas=${nutrition.length} esperado=${mealSlots.length} — completando...`);
+      for (let si = nutrition.length; si < mealSlots.length; si++) {
+        const slot = mealSlots[si];
+        nutrition.push({
+          id: `${dayName}-m${si}-fix`,
+          mealName: slot.name,
+          time: slot.time,
+          selectedOptionIndex: 0,
+          options: [
+            { id: `${dayName}-m${si}-fix-o1`, food: 'Frango grelhado com arroz', portion: '150g + 4 col.', calories: 380, protein: 35, carbs: 42, fats: 8, source: 'Pulsy AI' },
+            { id: `${dayName}-m${si}-fix-o2`, food: 'Atum com batata doce', portion: '120g + 200g', calories: 350, protein: 30, carbs: 45, fats: 6, source: 'Pulsy AI' },
+            { id: `${dayName}-m${si}-fix-o3`, food: 'Ovos mexidos com aveia', portion: '3 ovos + 50g', calories: 320, protein: 25, carbs: 30, fats: 12, source: 'Pulsy AI' },
+          ]
+        });
+      }
     }
 
     days.push({ day: dayName, workout, sessions, nutrition });
     console.log(`[Pulsy AI] ${dayName}: ${sessions.length} sessoes (${workout.length} exerc. total) | ${nutrition.length} refeicoes`);
   }
 
+  const gol = profile.structuredGoals?.[0];
+  const objText = gol?.type || 'Condicionamento';
+  const metaText = gol?.numericValue ? ` (meta: ${gol.numericValue})` : '';
+
   const plan: WeeklyPlan = {
     weeklyPlan: days,
-    summary: `Plano personalizado para ${profile.name} — Pulsy AI.`,
-    motivation: 'Consistencia eh o caminho para os resultados!',
-    references: ['ACSM Guidelines 2023', 'WHO Physical Activity Guidelines 2022']
+    summary: `Plano personalizado para ${profile.name} — ${objText}${metaText}. ${sel.length} dias/semana, ${av.timePerSession || 60}min/sessão, nível ${profile.fitnessLevel}. Gerado pela Pulsy AI.`,
+    motivation: `${profile.name}, consistência é o caminho! Seu objetivo de ${objText.toLowerCase()}${metaText} está ao seu alcance. Cada treino conta!`,
+    references: ['ACSM Guidelines for Exercise Testing and Prescription 2023', 'WHO Physical Activity Guidelines 2022', 'NSCA Essentials of Strength Training and Conditioning']
   };
 
   setCached(userId, hash, plan);

@@ -1,7 +1,7 @@
 // ProfileView.tsx
 import React, { useState } from 'react';
 import { UserProfile, TrainingHistory, ActivityLevel, FitnessLevel } from '../types';
-import { Save, Check, Activity, MapPin, Coffee, Trash2, Plus, Target, User, Ruler } from 'lucide-react';
+import { Save, Check, Activity, MapPin, Coffee, Trash2, Plus, Target, User, Ruler, Dumbbell } from 'lucide-react';
 
 interface Props {
   profile: UserProfile | null;
@@ -19,6 +19,12 @@ const WEEK_DAYS = [
   { short: 'Sex', jsDay: 5 },
   { short: 'Sáb', jsDay: 6 },
   { short: 'Dom', jsDay: 0 },
+];
+
+const MUSCLE_GROUPS = [
+  'Peitoral', 'Costas', 'Ombros', 'Bíceps', 'Tríceps',
+  'Antebraço', 'Quadríceps', 'Isquiotibiais', 'Glúteos',
+  'Panturrilha', 'Abdômen', 'Core', 'Cardio', 'Funcional'
 ];
 
 export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
@@ -66,6 +72,15 @@ export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
     const updated = current.includes(jsDay) ? current.filter(d => d !== jsDay) : [...current, jsDay];
     handleChange('availability.selectedDays', updated);
     handleChange('availability.daysPerWeek', updated.length);
+  };
+
+  const toggleMuscleForDay = (jsDay: number, muscle: string) => {
+    const currentRoutine = (local.availability?.muscleRoutine || {}) as Record<number, string[]>;
+    const current = currentRoutine[jsDay] || [];
+    const updated = current.includes(muscle)
+      ? current.filter(m => m !== muscle)
+      : [...current, muscle];
+    handleChange('availability.muscleRoutine', { ...currentRoutine, [jsDay]: updated });
   };
 
   const addGoal = () => handleChange('structuredGoals', [
@@ -152,7 +167,7 @@ export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
       </Section>
 
       {/* ─── Rotina & Disponibilidade ────────────────────────────────────── */}
-      <Section icon={<MapPin size={22} className="text-emerald-400" />} title="Rotina & Disponibilidade">
+      <Section icon={<MapPin size={22} className="text-emerald-400" />} title="Rotina, Disponibilidade & Músculos">
         <div className="space-y-6">
           <div className="space-y-3">
             <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">Dias de treino na semana</label>
@@ -171,6 +186,48 @@ export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
             </div>
             <p className="text-xs text-gray-600">{local.availability?.selectedDays?.length ?? 0} dia(s) selecionado(s)</p>
           </div>
+
+          {/* NOVA FUNCIONALIDADE: Rotina Muscular por Dia */}
+          {(local.availability?.selectedDays?.length ?? 0) > 0 && (
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                Grupos musculares por dia (opcional)
+              </label>
+              <p className="text-[9px] text-gray-500">
+                Selecione quais músculos treinar em cada dia. Se não selecionar, a IA decide automaticamente.
+              </p>
+              <div className="space-y-3">
+                {WEEK_DAYS.filter(d => local.availability?.selectedDays?.includes(d.jsDay)).map(d => {
+                  const muscleRoutine = (local.availability?.muscleRoutine || {}) as Record<number, string[]>;
+                  return (
+                    <div key={d.jsDay} className="bg-black/30 border border-white/5 rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase text-emerald-400 mb-3 tracking-widest">{d.short}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {MUSCLE_GROUPS.map(muscle => {
+                          const sel = (muscleRoutine[d.jsDay] || []).includes(muscle);
+                          return (
+                            <button key={muscle} type="button"
+                              onClick={() => toggleMuscleForDay(d.jsDay, muscle)}
+                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                                sel ? 'bg-emerald-400 text-black' : 'bg-black/40 border border-white/10 text-gray-500 hover:border-emerald-400/30 hover:text-gray-300'
+                              }`}
+                            >
+                              {muscle}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {(muscleRoutine[d.jsDay] || []).length > 0 && (
+                        <p className="text-[9px] text-emerald-400/70 mt-2">
+                          ✓ {(muscleRoutine[d.jsDay] || []).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <div className="space-y-2">
