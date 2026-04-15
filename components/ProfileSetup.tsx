@@ -90,7 +90,7 @@ export const ProfileSetup: React.FC<Props> = ({ onComplete }) => {
     // - Container usa overflow-y-auto para rolar normalmente
     // - Botões ficam ABAIXO do conteúdo (fora do flex-1), nunca somem
     <div className="w-full bg-black">
-      <div className="flex flex-col max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
+      <div className="flex flex-col max-w-2xl mx-auto w-full px-4 sm:px-6 pt-8 pb-32">
 
         {/* Header */}
         <div className="mb-8 flex-shrink-0">
@@ -391,8 +391,8 @@ export const ProfileSetup: React.FC<Props> = ({ onComplete }) => {
           )}
         </div>
 
-        {/* BOTÕES: sempre no final, nunca somem */}
-        <div className="mt-8 pb-8 flex gap-3 flex-shrink-0">
+        {/* BOTÕES: sempre visíveis — pb-32 garante espaço acima da nav bar do celular */}
+        <div className="mt-8 flex gap-3">
           {step > 0 && (
             <button
               onClick={() => setStep(step - 1)}

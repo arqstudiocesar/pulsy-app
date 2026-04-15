@@ -238,8 +238,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-black text-white font-sans">
       <main className="flex flex-col h-screen overflow-hidden">
 
-        {/* ─── Header ──────────────────────────────────────────────────────── */}
-        <header className="flex-shrink-0 p-3 md:p-4 border-b border-white/5 flex items-center gap-2 md:gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
+        {/* ─── Header — no mobile some durante onboarding (ProfileSetup tem header próprio) */}
+        <header className={`flex-shrink-0 p-3 md:p-4 border-b border-white/5 flex items-center gap-2 md:gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)] ${(!state.onboardingComplete || !state.profile) ? 'hidden md:flex' : 'flex'}`}>
           <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter text-emerald-400 flex-shrink-0">Pulsy</h1>
 
           {/* Barra de busca — esconde no mobile para não comprimir botões */}
@@ -255,16 +255,14 @@ const App: React.FC = () => {
           <div className="flex-1 md:hidden" />
 
           {/* Regenerar plano */}
-          {state.onboardingComplete && (
-            <button
-              onClick={() => state.profile && syncPlanWithAI(state.profile, true)}
-              disabled={isSyncing}
-              title="Regenerar plano"
-              className="p-2 md:p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40 flex-shrink-0"
-            >
-              <RefreshCw size={16} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-            </button>
-          )}
+          <button
+            onClick={() => state.profile && syncPlanWithAI(state.profile, true)}
+            disabled={isSyncing}
+            title="Regenerar plano"
+            className="p-2 md:p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40 flex-shrink-0"
+          >
+            <RefreshCw size={16} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+          </button>
 
           {/* API Key */}
           <button
@@ -486,24 +484,26 @@ const App: React.FC = () => {
           </div>{/* fim flex row */}
         )}
 
-        {/* Nav mobile */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around p-5 bg-neutral-950/95 backdrop-blur-3xl border-t border-white/5 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] z-50">
-          {NAVIGATION_ITEMS.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-2 transition-all duration-500 relative ${
-                activeTab === item.id ? 'text-emerald-400 scale-110 -translate-y-2' : 'text-gray-700'
-              }`}
-            >
-              <div className={`transition-all duration-500 ${activeTab === item.id ? 'bg-emerald-400/10 p-3 rounded-2xl' : ''}`}>
-                {item.icon}
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
-              {activeTab === item.id && <div className="absolute -top-3 w-1 h-1 bg-emerald-400 rounded-full" />}
-            </button>
-          ))}
-        </nav>
+        {/* Nav mobile — só aparece APÓS o onboarding */}
+        {state.onboardingComplete && state.profile && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around p-5 bg-neutral-950/95 backdrop-blur-3xl border-t border-white/5 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] z-50">
+            {NAVIGATION_ITEMS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex flex-col items-center gap-2 transition-all duration-500 relative ${
+                  activeTab === item.id ? 'text-emerald-400 scale-110 -translate-y-2' : 'text-gray-700'
+                }`}
+              >
+                <div className={`transition-all duration-500 ${activeTab === item.id ? 'bg-emerald-400/10 p-3 rounded-2xl' : ''}`}>
+                  {item.icon}
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
+                {activeTab === item.id && <div className="absolute -top-3 w-1 h-1 bg-emerald-400 rounded-full" />}
+              </button>
+            ))}
+          </nav>
+        )}
       </main>
     </div>
   );
