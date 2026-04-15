@@ -238,8 +238,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-black text-white font-sans">
       <main className="flex flex-col h-screen overflow-hidden">
 
-        {/* ─── Header — no mobile some durante onboarding (ProfileSetup tem header próprio) */}
-        <header className={`flex-shrink-0 p-3 md:p-4 border-b border-white/5 flex items-center gap-2 md:gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)] ${(!state.onboardingComplete || !state.profile) ? 'hidden md:flex' : 'flex'}`}>
+        {/* ─── Header ──────────────────────────────────────────────────────── */}
+        <header className={`flex-shrink-0 p-3 md:p-4 border-b border-white/5 items-center gap-2 md:gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)] ${(!state.onboardingComplete || !state.profile) ? 'hidden md:flex' : 'flex'}`}>
           <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter text-emerald-400 flex-shrink-0">Pulsy</h1>
 
           {/* Barra de busca — esconde no mobile para não comprimir botões */}
@@ -255,14 +255,16 @@ const App: React.FC = () => {
           <div className="flex-1 md:hidden" />
 
           {/* Regenerar plano */}
-          <button
-            onClick={() => state.profile && syncPlanWithAI(state.profile, true)}
-            disabled={isSyncing}
-            title="Regenerar plano"
-            className="p-2 md:p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40 flex-shrink-0"
-          >
-            <RefreshCw size={16} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-          </button>
+          {state.onboardingComplete && (
+            <button
+              onClick={() => state.profile && syncPlanWithAI(state.profile, true)}
+              disabled={isSyncing}
+              title="Regenerar plano"
+              className="p-2 md:p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40 flex-shrink-0"
+            >
+              <RefreshCw size={16} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
 
           {/* API Key */}
           <button
@@ -425,7 +427,7 @@ const App: React.FC = () => {
               </div>
             </nav>
 
-            {/* Conteúdo principal — scroll independente, padding bottom para não ficar atrás da nav mobile */}
+            {/* Conteúdo principal */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-4 md:p-6 pb-28 md:pb-6">
 
@@ -448,7 +450,6 @@ const App: React.FC = () => {
                     <Loader2 size={18} className="animate-spin flex-shrink-0" />
                     <span>{syncMsg}</span>
                   </div>
-                  {/* Barra de progresso animada */}
                   <div className="w-full bg-emerald-400/10 rounded-full h-1.5 overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full animate-pulse" style={{ width: '100%' }} />
                   </div>
@@ -479,9 +480,9 @@ const App: React.FC = () => {
               {activeTab === 'progress'   && <ProgressView  history={state.history} profile={state.profile} currentPlan={state.currentPlan} />}
               {activeTab === 'profile'    && state.profile && <ProfileView profile={state.profile} onUpdate={handleProfileUpdate} />}
 
-              </div>{/* fim padding div */}
-            </div>{/* fim scroll div */}
-          </div>{/* fim flex row */}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Nav mobile — só aparece APÓS o onboarding */}
