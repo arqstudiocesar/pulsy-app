@@ -235,14 +235,15 @@ const App: React.FC = () => {
   const avatarLetter = activeUser?.avatarLetter || state.profile?.name?.[0]?.toUpperCase() || 'P';
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans overflow-hidden">
-      <main className="flex flex-col h-screen overflow-y-auto">
+    <div className="min-h-screen bg-black text-white font-sans">
+      <main className="flex flex-col h-screen overflow-hidden">
 
         {/* ─── Header ──────────────────────────────────────────────────────── */}
-        <header className="p-4 border-b border-white/5 flex items-center gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-          <h1 className="text-2xl font-black italic uppercase tracking-tighter text-emerald-400">Pulsy</h1>
+        <header className="flex-shrink-0 p-3 md:p-4 border-b border-white/5 flex items-center gap-2 md:gap-4 bg-neutral-950/95 backdrop-blur-3xl z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
+          <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter text-emerald-400 flex-shrink-0">Pulsy</h1>
 
-          <div className="flex-1 relative">
+          {/* Barra de busca — esconde no mobile para não comprimir botões */}
+          <div className="hidden md:flex flex-1 relative">
             <input
               className="w-full bg-neutral-900/40 border border-white/5 rounded-full px-6 py-3 text-sm italic placeholder:text-gray-600 focus:border-emerald-400/30 outline-none shadow-inner"
               placeholder="Pesquisar biomarcadores..."
@@ -250,13 +251,16 @@ const App: React.FC = () => {
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
           </div>
 
+          {/* Espaço flexível no mobile para empurrar botões à direita */}
+          <div className="flex-1 md:hidden" />
+
           {/* Regenerar plano */}
           {state.onboardingComplete && (
             <button
               onClick={() => state.profile && syncPlanWithAI(state.profile, true)}
               disabled={isSyncing}
               title="Regenerar plano"
-              className="p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40"
+              className="p-2 md:p-3 bg-emerald-400/10 rounded-full border border-emerald-400/20 hover:bg-emerald-400/20 transition-all disabled:opacity-40 flex-shrink-0"
             >
               <RefreshCw size={16} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
             </button>
@@ -266,7 +270,7 @@ const App: React.FC = () => {
           <button
             onClick={() => setShowApiModal(true)}
             title="Configurar GROQ API Key"
-            className={`p-3 rounded-full border transition-all ${
+            className={`p-2 md:p-3 rounded-full border transition-all flex-shrink-0 ${
               hasKey
                 ? 'bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20'
                 : 'bg-red-500/20 border-red-500/30 hover:bg-red-500/30 animate-pulse'
@@ -275,12 +279,13 @@ const App: React.FC = () => {
             <KeyRound size={16} className={hasKey ? 'text-emerald-400' : 'text-red-400'} />
           </button>
 
-          <button className="p-3 bg-neutral-900/40 rounded-full border border-white/5 hover:border-emerald-400/30 transition-all">
+          {/* Sino — esconde no mobile */}
+          <button className="hidden md:flex p-3 bg-neutral-900/40 rounded-full border border-white/5 hover:border-emerald-400/30 transition-all flex-shrink-0">
             <Bell size={18} className="text-gray-400" />
           </button>
 
           {/* Avatar / usuários */}
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative flex-shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(v => !v)}
               className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center font-black text-black text-sm shadow-lg hover:scale-105 transition-all"
@@ -390,12 +395,14 @@ const App: React.FC = () => {
 
         {/* ─── Onboarding ou App ───────────────────────────────────────────── */}
         {(!state.onboardingComplete || !state.profile) ? (
-          <ProfileSetup onComplete={handleProfileUpdate} />
+          <div className="flex-1 overflow-y-auto">
+            <ProfileSetup onComplete={handleProfileUpdate} />
+          </div>
         ) : (
-          <div className="flex-1 flex flex-col md:flex-row overflow-y-auto">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-            {/* Sidebar */}
-            <nav className="hidden md:flex flex-col w-64 border-r border-white/5 p-6 flex-shrink-0 space-y-4 bg-neutral-950/95 backdrop-blur-3xl">
+            {/* Sidebar — desktop only */}
+            <nav className="hidden md:flex flex-col w-64 border-r border-white/5 p-6 flex-shrink-0 space-y-4 bg-neutral-950/95 backdrop-blur-3xl overflow-y-auto">
               {NAVIGATION_ITEMS.map(item => (
                 <button
                   key={item.id}
@@ -420,8 +427,9 @@ const App: React.FC = () => {
               </div>
             </nav>
 
-            {/* Conteúdo */}
-            <div className="flex-1 p-6 overflow-y-auto pb-32 md:pb-6">
+            {/* Conteúdo principal — scroll independente, padding bottom para não ficar atrás da nav mobile */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 md:p-6 pb-28 md:pb-6">
 
               {users.length > 1 && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-4 py-2 mb-4 flex items-center gap-2">
@@ -472,8 +480,10 @@ const App: React.FC = () => {
               {activeTab === 'references' && <ReferencesView currentPlan={state.currentPlan} />}
               {activeTab === 'progress'   && <ProgressView  history={state.history} profile={state.profile} currentPlan={state.currentPlan} />}
               {activeTab === 'profile'    && state.profile && <ProfileView profile={state.profile} onUpdate={handleProfileUpdate} />}
-            </div>
-          </div>
+
+              </div>{/* fim padding div */}
+            </div>{/* fim scroll div */}
+          </div>{/* fim flex row */}
         )}
 
         {/* Nav mobile */}

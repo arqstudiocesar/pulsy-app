@@ -89,8 +89,8 @@ export const ProfileSetup: React.FC<Props> = ({ onComplete }) => {
     // - Removido overflow-hidden que cortava conteúdo
     // - Container usa overflow-y-auto para rolar normalmente
     // - Botões ficam ABAIXO do conteúdo (fora do flex-1), nunca somem
-    <div className="w-full min-h-screen bg-black overflow-y-auto">
-      <div className="flex flex-col max-w-2xl mx-auto w-full px-4 sm:px-6 py-8 min-h-screen">
+    <div className="w-full bg-black">
+      <div className="flex flex-col max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
 
         {/* Header */}
         <div className="mb-8 flex-shrink-0">
