@@ -22,6 +22,7 @@ const WEEK_DAYS = [
 ];
 
 const MUSCLE_GROUPS = [
+  'TODOS',
   'Peitoral', 'Costas', 'Ombros', 'Bíceps', 'Tríceps',
   'Antebraço', 'Quadríceps', 'Isquiotibiais', 'Glúteos',
   'Panturrilha', 'Abdômen', 'Core', 'Cardio', 'Funcional'
@@ -77,9 +78,18 @@ export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
   const toggleMuscleForDay = (jsDay: number, muscle: string) => {
     const currentRoutine = (local.availability?.muscleRoutine || {}) as Record<number, string[]>;
     const current = currentRoutine[jsDay] || [];
-    const updated = current.includes(muscle)
-      ? current.filter(m => m !== muscle)
-      : [...current, muscle];
+
+    let updated: string[];
+    if (muscle === 'TODOS') {
+      // Se TODOS já está selecionado, desmarca tudo; senão, seleciona apenas TODOS
+      updated = current.includes('TODOS') ? [] : ['TODOS'];
+    } else {
+      // Se está selecionando músculo específico, remove TODOS automaticamente
+      const withoutTodos = current.filter(m => m !== 'TODOS');
+      updated = withoutTodos.includes(muscle)
+        ? withoutTodos.filter(m => m !== muscle)
+        : [...withoutTodos, muscle];
+    }
     handleChange('availability.muscleRoutine', { ...currentRoutine, [jsDay]: updated });
   };
 
@@ -205,21 +215,30 @@ export const ProfileView: React.FC<Props> = ({ profile, onUpdate }) => {
                       <div className="flex flex-wrap gap-2">
                         {MUSCLE_GROUPS.map(muscle => {
                           const sel = (muscleRoutine[d.jsDay] || []).includes(muscle);
+                          const isTodos = muscle === 'TODOS';
                           return (
                             <button key={muscle} type="button"
                               onClick={() => toggleMuscleForDay(d.jsDay, muscle)}
                               className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${
-                                sel ? 'bg-emerald-400 text-black' : 'bg-black/40 border border-white/10 text-gray-500 hover:border-emerald-400/30 hover:text-gray-300'
+                                sel
+                                  ? isTodos
+                                    ? 'bg-blue-400 text-black'
+                                    : 'bg-emerald-400 text-black'
+                                  : isTodos
+                                    ? 'bg-black/40 border border-blue-400/30 text-blue-400 hover:bg-blue-400/10'
+                                    : 'bg-black/40 border border-white/10 text-gray-500 hover:border-emerald-400/30 hover:text-gray-300'
                               }`}
                             >
-                              {muscle}
+                              {isTodos ? '★ TODOS' : muscle}
                             </button>
                           );
                         })}
                       </div>
                       {(muscleRoutine[d.jsDay] || []).length > 0 && (
                         <p className="text-[9px] text-emerald-400/70 mt-2">
-                          ✓ {(muscleRoutine[d.jsDay] || []).join(', ')}
+                          {(muscleRoutine[d.jsDay] || []).includes('TODOS')
+                            ? '★ IA pode usar qualquer grupo muscular'
+                            : `✓ ${(muscleRoutine[d.jsDay] || []).join(', ')}`}
                         </p>
                       )}
                     </div>

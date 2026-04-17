@@ -290,11 +290,33 @@ async function genWorkoutSession(
   const modPrefs = av.modalities?.length ? av.modalities.join(', ') : null;
   const prefText = modPrefs ? `Modalidades preferidas: ${modPrefs}.` : '';
 
-  // CORRECAO MOTOR: rotina muscular por dia definida pelo usuario
+  // Instrucoes detalhadas por LOCAL DE TREINO
+  const locationRules: Record<string, string> = {
+    'Academia':  'Use exercicios com maquinas, halteres, barras, cabos e equipamentos de academia.',
+    'Casa':      'Use APENAS exercicios com peso corporal ou objetos domesticos (cadeiras, garrafas). SEM equipamentos de academia.',
+    'Parque':    'Use exercicios com barras fixas, paralelas, escadas, bancos e estruturas publicas. SEM maquinas de academia.',
+    'Estudio':   'Use exercicios com halteres leves, elásticos, medicine ball e equipamentos de studio.',
+    'Crossfit':  'Use exercicios funcionais: kettlebell, barbell, box jump, rope, WOD-style.',
+  };
+  const locs = av.locations || ['Academia'];
+  let locationContext = '';
+  if (locs.length === 1) {
+    locationContext = locationRules[locs[0]] || `Local: ${locs[0]}.`;
+  } else {
+    const rules = locs.map(l => locationRules[l] || l).join(' Ou ainda: ');
+    locationContext = `O usuario treina em multiplos locais. Combine os recursos: ${rules}`;
+  }
+
+  // Rotina muscular por dia — respeita TODOS ou grupos especificos
   let muscleContext = '';
   if (dayJsIndex !== undefined && av.muscleRoutine && av.muscleRoutine[dayJsIndex]?.length > 0) {
-    const muscles = av.muscleRoutine[dayJsIndex].join(', ');
-    muscleContext = `OBRIGATORIO: Este dia o usuario escolheu treinar: ${muscles}. Use APENAS exercicios para esses grupos musculares.`;
+    const dayMuscles = av.muscleRoutine[dayJsIndex];
+    if (dayMuscles.includes('TODOS')) {
+      muscleContext = 'O usuario selecionou TODOS os grupos musculares: a IA pode usar qualquer grupo muscular para este dia.';
+    } else {
+      const muscles = dayMuscles.join(', ');
+      muscleContext = `OBRIGATORIO: O usuario selecionou treinar APENAS: ${muscles}. Gere exercicios EXCLUSIVAMENTE para esses grupos musculares. Nao inclua outros grupos.`;
+    }
   }
 
   let sessionContext = '';
@@ -312,11 +334,12 @@ async function genWorkoutSession(
   const prompt = `Treino para "${day}" - Sessao ${sessionIdx + 1}/${totalSessions}.
 Perfil: ${profile.name}, ${profile.age} anos, ${peso}kg, altura ${profile.height || 175}cm, nivel ${nivel}.
 Objetivo: ${obj}${metaNumerica ? ` (meta numerica: ${metaNumerica})` : ''}.
-Peso alvo: ${pesoAlvo}kg. Local: ${loc}.
+Peso alvo: ${pesoAlvo}kg.
+LOCAL DE TREINO: ${loc}. ${locationContext}
 ${prefText}
 ${muscleContext}
 ${sessionContext}
-Regras OBRIGATORIAS: gerar entre ${min} e ${max} exercicios. Duracao maxima ${tps} minutos POR SESSAO. Exercicios devem ser adequados para nivel ${nivel}.
+Regras OBRIGATORIAS: gerar entre ${min} e ${max} exercicios. Duracao maxima ${tps} minutos POR SESSAO. Exercicios devem ser adequados para nivel ${nivel} e para o LOCAL ${loc}.
 
 Responda APENAS com este array JSON:
 [{"id":"e1","name":"Agachamento Livre","sets":3,"reps":"10-12","rest":"60s","muscleGroup":"Quadriceps","category":"Forca","difficulty":"${nivel}","instructions":"Pes na largura dos ombros, desca ate 90 graus, joelhos alinhados.","kcalEstimate":65,"source":"Pulsy AI"}]`;

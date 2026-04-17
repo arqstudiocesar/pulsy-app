@@ -27,6 +27,20 @@ export const NutritionView: React.FC<Props> = ({ profile, currentPlan, onUpdateP
     return currentPlan?.weeklyPlan?.[selectedDayIndex] || null;
   }, [currentPlan, selectedDayIndex]);
 
+  // ─── Refeições ordenadas cronologicamente ──────────────────────────────
+  // Ordena pelo horário (campo time) para garantir ordem correta na exibição
+  const sortedNutrition = useMemo(() => {
+    if (!dayData?.nutrition) return [];
+    return [...dayData.nutrition].sort((a, b) => {
+      // Converte "HH:MM" para minutos para comparar
+      const toMin = (t: string) => {
+        const [h, m] = (t || '00:00').split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
+      };
+      return toMin(a.time) - toMin(b.time);
+    });
+  }, [dayData]);
+
   // ─── Totais do dia ─────────────────────────────────────────────────────
   const totals = useMemo(() => {
     if (!dayData?.nutrition) return { kcal: 0, pro: 0, carb: 0, fat: 0 };
@@ -276,20 +290,25 @@ export const NutritionView: React.FC<Props> = ({ profile, currentPlan, onUpdateP
               <p className="text-gray-500 font-bold">Nenhuma refeição configurada para este dia.</p>
             </div>
           ) : (
-            dayData!.nutrition.map((meal, mIdx) => (
-              <MealCard
-                key={`d${selectedDayIndex}-${mIdx}-${meal.id}`}
-                meal={meal}
-                mealIdx={mIdx}
-                loadingItems={loadingItems}
-                onSelectOption={selectOption}
-                onRemoveMeal={removeMeal}
-                onAddOption={addOption}
-                onRemoveOption={removeOption}
-                onFoodNameBlur={handleFoodNameBlur}
-                onPortionBlur={handlePortionBlur}
-              />
-            ))
+            // Exibe refeições em ordem cronológica (por horário)
+            sortedNutrition.map((meal) => {
+              // Busca o índice original para manter mutações corretas
+              const mIdx = dayData!.nutrition.findIndex(m => m.id === meal.id);
+              return (
+                <MealCard
+                  key={`d${selectedDayIndex}-${mIdx}-${meal.id}`}
+                  meal={meal}
+                  mealIdx={mIdx}
+                  loadingItems={loadingItems}
+                  onSelectOption={selectOption}
+                  onRemoveMeal={removeMeal}
+                  onAddOption={addOption}
+                  onRemoveOption={removeOption}
+                  onFoodNameBlur={handleFoodNameBlur}
+                  onPortionBlur={handlePortionBlur}
+                />
+              );
+            })
           )}
 
           <button onClick={addMeal}
